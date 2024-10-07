@@ -123,19 +123,28 @@ pub async fn validate_and_create_asm_client(
     config: &Config,
 ) -> Result<SecretsManagerClient, Box<dyn std::error::Error>> {
     use aws_config::{BehaviorVersion, Region};
+    use aws_config::profile::ProfileFileCredentialsProvider;
 
-    let default_config = &aws_config::load_defaults(BehaviorVersion::latest()).await;
-    let mut asm_builder = aws_sdk_secretsmanager::config::Builder::from(default_config)
-        .interceptor(AgentModifierInterceptor);
-    let mut sts_builder = aws_sdk_sts::config::Builder::from(default_config);
+    let mut config_builder = aws_config::from_env().behavior_version(BehaviorVersion::latest());
 
     if let Some(region) = config.region() {
-        asm_builder.set_region(Some(Region::new(region.clone())));
-        sts_builder.set_region(Some(Region::new(region.clone())));
+        config_builder = config_builder.region(Region::new(region.clone()));
     }
 
+    if let Some(sso_profile) = config.sso_profile() {
+        let credentials_provider = ProfileFileCredentialsProvider::builder()
+            .profile_name(sso_profile)
+            .build();
+        config_builder = config_builder.credentials_provider(credentials_provider);
+    }
+
+    let aws_config = config_builder.load().await;
+
+    let asm_builder = aws_sdk_secretsmanager::config::Builder::from(&aws_config)
+        .interceptor(AgentModifierInterceptor);
+
     // Validate the region and credentials first
-    let sts_client = aws_sdk_sts::Client::from_conf(sts_builder.build());
+    let sts_client = aws_sdk_sts::Client::from_conf(aws_sdk_sts::config::Builder::from(&aws_config).build());
     let _ = sts_client.get_caller_identity().send().await?;
 
     Ok(aws_sdk_secretsmanager::Client::from_conf(

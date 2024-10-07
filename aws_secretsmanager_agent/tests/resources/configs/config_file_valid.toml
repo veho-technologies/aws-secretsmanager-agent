@@ -11,4 +11,5 @@ cache_size = '1000'
 max_conn = 10
 region = "us-west-2"
 disable_ssrf_check = false
+sso_profile = "my-sso-profile"
 

@@ -40,6 +40,7 @@ struct ConfigFile {
     max_conn: String,
     region: Option<String>,
     disable_ssrf_check: Option<bool>,
+    sso_profile: Option<String>,
 }
 
 /// The log levels supported by the daemon.
@@ -101,6 +102,9 @@ pub struct Config {
 
     /// Whether to disable SSRF token verification
     disable_ssrf_check: bool,
+
+    /// The AWS SSO profile name to use for credentials
+    sso_profile: Option<String>,
 }
 
 /// The default configuration options.
@@ -242,6 +246,11 @@ impl Config {
         self.disable_ssrf_check
     }
 
+    /// The AWS SSO profile name to use for credentials
+    pub fn sso_profile(&self) -> Option<&String> {
+        self.sso_profile.as_ref()
+    }
+
     /// Private helper that fills in the Config instance from the specified
     /// config overrides (or defaults).
     ///
@@ -290,6 +299,7 @@ impl Config {
             )?,
             region: config_file.region,
             disable_ssrf_check: config_file.disable_ssrf_check.unwrap_or(false),
+            sso_profile: config_file.sso_profile,
         };
 
         // Additional validations.
@@ -373,6 +383,7 @@ mod tests {
             max_conn: String::from(DEFAULT_MAX_CONNECTIONS),
             region: None,
             disable_ssrf_check: None,
+            sso_profile: None,
         }
     }
 
@@ -399,6 +410,7 @@ mod tests {
         assert_eq!(config.clone().max_conn(), 800);
         assert_eq!(config.clone().region(), None);
         assert_eq!(config.clone().disable_ssrf_check(), false);
+        assert_eq!(config.clone().sso_profile(), None);
     }
 
     /// Tests the config overrides are applied correctly from the provided config file.
@@ -424,6 +436,7 @@ mod tests {
         assert_eq!(config.clone().max_conn(), 10);
         assert_eq!(config.clone().region(), Some(&"us-west-2".to_string()));
         assert_eq!(config.clone().disable_ssrf_check(), false);
+        assert_eq!(config.clone().sso_profile(), Some(&"my-profile".to_string()));
     }
 
     /// Tests that an Err is returned when an invalid value is provided in one of the configurations.
