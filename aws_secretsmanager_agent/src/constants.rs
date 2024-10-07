@@ -25,3 +25,5 @@ pub const DEFAULT_MAX_CONNECTIONS: &str = "800";
 pub const MAX_REQ_TIME_SEC: u64 = 61;
 // The max buffer size
 pub const MAX_BUF_BYTES: usize = (65 + 256) * 1024; // 321 KB
+
+pub const DISABLE_SSRF_CHECK_WARNING: &str = "SSRF token verification is disabled. This should only be used in secure, local environments.";

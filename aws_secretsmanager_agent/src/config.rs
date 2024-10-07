@@ -39,6 +39,7 @@ struct ConfigFile {
     path_prefix: String,
     max_conn: String,
     region: Option<String>,
+    disable_ssrf_check: Option<bool>,
 }
 
 /// The log levels supported by the daemon.
@@ -97,6 +98,9 @@ pub struct Config {
 
     /// The AWS Region that will be used to send the Secrets Manager request to.
     region: Option<String>,
+
+    /// Whether to disable SSRF token verification
+    disable_ssrf_check: bool,
 }
 
 /// The default configuration options.
@@ -138,7 +142,8 @@ impl Config {
             )?
             .set_default("path_prefix", DEFAULT_PATH_PREFIX)?
             .set_default("max_conn", DEFAULT_MAX_CONNECTIONS)?
-            .set_default("region", DEFAULT_REGION)?;
+            .set_default("region", DEFAULT_REGION)?
+            .set_default("disable_ssrf_check", false)?;
 
         // Merge the config overrides onto the default configurations, if provided.
         config = match file_path {
@@ -232,6 +237,11 @@ impl Config {
         self.region.as_ref()
     }
 
+    /// Whether SSRF token verification is disabled
+    pub fn disable_ssrf_check(&self) -> bool {
+        self.disable_ssrf_check
+    }
+
     /// Private helper that fills in the Config instance from the specified
     /// config overrides (or defaults).
     ///
@@ -279,6 +289,7 @@ impl Config {
                 None,
             )?,
             region: config_file.region,
+            disable_ssrf_check: config_file.disable_ssrf_check.unwrap_or(false),
         };
 
         // Additional validations.
@@ -361,6 +372,7 @@ mod tests {
             path_prefix: String::from(DEFAULT_PATH_PREFIX),
             max_conn: String::from(DEFAULT_MAX_CONNECTIONS),
             region: None,
+            disable_ssrf_check: None,
         }
     }
 
@@ -386,6 +398,7 @@ mod tests {
         assert_eq!(config.clone().path_prefix(), DEFAULT_PATH_PREFIX);
         assert_eq!(config.clone().max_conn(), 800);
         assert_eq!(config.clone().region(), None);
+        assert_eq!(config.clone().disable_ssrf_check(), false);
     }
 
     /// Tests the config overrides are applied correctly from the provided config file.
@@ -410,6 +423,7 @@ mod tests {
         assert_eq!(config.clone().path_prefix(), "/other");
         assert_eq!(config.clone().max_conn(), 10);
         assert_eq!(config.clone().region(), Some(&"us-west-2".to_string()));
+        assert_eq!(config.clone().disable_ssrf_check(), false);
     }
 
     /// Tests that an Err is returned when an invalid value is provided in one of the configurations.

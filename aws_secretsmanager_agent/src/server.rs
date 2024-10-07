@@ -5,6 +5,7 @@ use hyper::service::service_fn;
 use hyper::{body::Incoming as IncomingBody, Method, Request, Response};
 use hyper_util::rt::TokioIo;
 use log::error;
+use log::warn;
 use tokio::net::TcpListener;
 use tokio::time::timeout;
 
@@ -25,6 +26,7 @@ pub struct Server {
     ssrf_headers: Arc<Vec<String>>,
     path_prefix: Arc<String>,
     max_conn: usize,
+    disable_ssrf_check: bool,
 }
 
 /// Handle incoming HTTP requests.
@@ -47,6 +49,10 @@ impl Server {
         listener: TcpListener,
         cfg: &Config,
     ) -> Result<Self, Box<dyn std::error::Error>> {
+        if cfg.disable_ssrf_check() {
+            warn!("{}", crate::constants::DISABLE_SSRF_CHECK_WARNING);
+        }
+
         Ok(Self {
             listener: Arc::new(listener),
             cache_mgr: Arc::new(CacheManager::new(cfg).await?),
@@ -54,6 +60,7 @@ impl Server {
             ssrf_headers: Arc::new(cfg.ssrf_headers()),
             path_prefix: Arc::new(cfg.path_prefix()),
             max_conn: cfg.max_conn(),
+            disable_ssrf_check: cfg.disable_ssrf_check(),
         })
     }
 
@@ -219,6 +226,10 @@ impl Server {
     /// * `Err((u16, String))` - A 400 or 403 error code (if header is set or token is missing or wrong) and error message.
     #[doc(hidden)]
     fn validate_token(&self, req: &Request<IncomingBody>) -> Result<(), HttpError> {
+        if self.disable_ssrf_check {
+            return Ok(());
+        }
+
         if req.uri().path() == "/ping" {
             return Ok(());
         }
