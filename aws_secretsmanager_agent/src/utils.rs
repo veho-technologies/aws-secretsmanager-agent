@@ -125,7 +125,7 @@ pub async fn validate_and_create_asm_client(
     use aws_config::{BehaviorVersion, Region};
     use aws_config::profile::ProfileFileCredentialsProvider;
 
-    let mut config_builder = aws_config::from_env().behavior_version(BehaviorVersion::latest());
+    let mut config_builder = aws_config::defaults(BehaviorVersion::latest());
 
     if let Some(region) = config.region() {
         config_builder = config_builder.region(Region::new(region.clone()));
