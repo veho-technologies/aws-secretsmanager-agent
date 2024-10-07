@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::{error, info, warn};
 use tokio::net::TcpListener;
 
 use std::env;
@@ -158,13 +158,17 @@ async fn init(args: impl IntoIterator<Item = String>) -> (Config, TcpListener) {
     }
 
     // Verify the SSRF token env variable is set
-    if let Err(err) = get_token(&config) {
-        let msg = format!(
-            "Could not read SSRF token variable(s) {:?}: {err}",
-            config.ssrf_env_variables()
-        );
-        error!("{msg}");
-        err_exit(&msg, "");
+    if !config.disable_ssrf_check() {
+        if let Err(err) = get_token(&config) {
+            let msg = format!(
+                "Could not read SSRF token variable(s) {:?}: {err}",
+                config.ssrf_env_variables()
+            );
+            error!("{msg}");
+            err_exit(&msg, "");
+        }
+    } else {
+        warn!("{}", constants::DISABLE_SSRF_CHECK_WARNING);
     }
 
     // Bind the listener to the specified port

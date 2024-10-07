@@ -61,6 +61,10 @@ pub fn err_response(err_code: &str, msg: &str) -> String {
 /// * `Err(Error)` - Error indicating that the variable is not set or could not be read.
 #[doc(hidden)]
 pub fn get_token(config: &Config) -> Result<String, Box<dyn std::error::Error>> {
+    if config.disable_ssrf_check() {
+        return Ok("SSRF_CHECK_DISABLED".to_string());
+    }
+
     // Iterate through the env name list looking for the first variable set
     #[allow(clippy::redundant_closure)]
     let found = config
